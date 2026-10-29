@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python + Backend (FastAPI) Yol Haritası</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-hover: #263449;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-green: #22c55e;
+      --border: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .progress-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 2rem;
+      position: sticky;
+      top: 1rem;
+      z-index: 10;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      margin-bottom: 0.6rem;
+      font-size: 0.95rem;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 12px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      transition: width 0.3s ease;
+    }
+
+    .stage {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: transform 0.15s ease;
+    }
+
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .stage-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge.active-now {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .checklist li label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      cursor: pointer;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+
+    .checklist li label:hover {
+      background: var(--card-hover);
+    }
+
+    .checklist input[type="checkbox"] {
+      margin-top: 0.28rem;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-green);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .checklist input[type="checkbox"]:checked + span {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.1rem 0.45rem;
+      border-radius: 4px;
+      margin-right: 0.4rem;
+      text-transform: uppercase;
+    }
+
+    .tag.py {
+      background: rgba(250, 204, 21, 0.18);
+      color: #facc15;
+    }
+
+    .tag.be {
+      background: rgba(129, 140, 248, 0.2);
+      color: #a5b4fc;
+    }
+
+    .tag.proj {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    .rules-card {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(129, 140, 248, 0.12));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .rules-card h3 {
+      margin-bottom: 0.75rem;
+      color: #facc15;
+    }
+
+    .rules-card ul {
+      padding-left: 1.2rem;
+      color: var(--text);
+    }
+
+    .rules-card li {
+      margin-bottom: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🐍 Python + Backend (FastAPI) Yol Haritası</h1>
+      <p>Ayrı ayrı aylarca teori çalışmadan, proje odaklı (Just-in-Time) öğrenme planı</p>
+    </header>
+
+    <div class="progress-box">
+      <div class="progress-header">
+        <span>Genel İlerleme Durumu</span>
+        <span id="progress-text">0% Tamamlandı</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- 1. AŞAMA -->
+    <div class="stage">
+      <div class="stage-header">
+        <span class="stage-title">1. Aşama: Hayatta Kalacak Kadar Python</span>
+        <span class="badge active-now">📍 Şu An Buradayız (3 - 5 Gün)</span>
+      </div>
+      <ul class="checklist">
+        <li>
+          <label>
+            <input type="checkbox" data-id="s1-1" />
+            <span><span class="tag py">Python</span>Değişkenler ve temel veri tipleri (<code>str</code>, <code>int</code>, <code>float</code>, <code>bool</code>)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s1-2" />
+            <span><span class="tag py">Python</span>Sözlükler (<code>dict</code>) ve Listeler (<code>list</code>) — JSON verisinin temeli</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s1-3" />
+            <span><span class="tag py">Python</span>Koşullar (<code>if / else</code>) ve Döngüler (<code>for</code>) ile liste içinde arama yapmak</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s1-4" />
+            <span><span class="tag py">Python</span>Fonksiyonlar (<code>def</code>), parametre alma ve <code>return</code> mantığı</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s1-5" />
+            <span><span class="tag py">Python</span><code>pip</code> ile paket kurma ve <code>import</code> kullanımı</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 2. AŞAMA -->
+    <div class="stage">
+      <div class="stage-header">
+        <span class="stage-title">2. Aşama: İlk API ve HTTP Mantığı (FastAPI)</span>
+        <span class="badge">1. Hafta</span>
+      </div>
+      <ul class="checklist">
+        <li>
+          <label>
+            <input type="checkbox" data-id="s2-1" />
+            <span><span class="tag be">Backend</span>HTTP nedir? <code>GET</code> ve <code>POST</code> istekleri nasıl çalışır?</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s2-2" />
+            <span><span class="tag be">Backend</span>FastAPI kurulumu ve ilk sunucuyu ayağa kaldırmak (Swagger UI / <code>/docs</code>)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s2-3" />
+            <span><span class="tag py">Python</span>Type Hints (Tip Belirtme: <code>urun_id: int</code>) kullanımı</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s2-4" />
+            <span><span class="tag py">Python</span>Sınıflar (<code>class</code>) ve Pydantic (<code>BaseModel</code>) ile gelen veriyi doğrulama</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s2-5" />
+            <span><span class="tag proj">Mini Proje</span>Hafızada çalışan "Yapılacaklar Listesi (To-Do) / Ürün API'si" (Ekle, Listele, Sil)</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 3. AŞAMA -->
+    <div class="stage">
+      <div class="stage-header">
+        <span class="stage-title">3. Aşama: Veritabanı ve Kalıcı Veri</span>
+        <span class="badge">2. - 3. Hafta</span>
+      </div>
+      <ul class="checklist">
+        <li>
+          <label>
+            <input type="checkbox" data-id="s3-1" />
+            <span><span class="tag be">Backend</span>İlişkisel veritabanı mantığı (SQLite / PostgreSQL) ve CRUD işlemleri</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s3-2" />
+            <span><span class="tag be">Backend</span>ORM kullanımı (SQLModel veya SQLAlchemy) ile tabloları yönetmek</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s3-3" />
+            <span><span class="tag py">Python</span><code>try / except</code> ile hata yakalama ve HTTP durum kodları (404 Not Found vb.)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s3-4" />
+            <span><span class="tag py">Python</span>Projeyi modüllere bölmek (<code>models.py</code>, <code>database.py</code>, <code>main.py</code>)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s3-5" />
+            <span><span class="tag proj">Mini Proje</span>Veritabanı bağlantılı "Blog / Not Alma API'si"</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 4. AŞAMA -->
+    <div class="stage">
+      <div class="stage-header">
+        <span class="stage-title">4. Aşama: Kimlik Doğrulama (Auth) ve Güvenlik</span>
+        <span class="badge">4. Hafta</span>
+      </div>
+      <ul class="checklist">
+        <li>
+          <label>
+            <input type="checkbox" data-id="s4-1" />
+            <span><span class="tag be">Backend</span>Kullanıcı Kaydı (Register), Giriş (Login) ve Şifre Hashleme (Bcrypt)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s4-2" />
+            <span><span class="tag be">Backend</span>JWT (JSON Web Token) ile oturum ve yetki kontrolü</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s4-3" />
+            <span><span class="tag py">Python</span>Decorator (<code>@</code>) mantığı ve <code>.env</code> dosyası ile gizli anahtarları saklama</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s4-4" />
+            <span><span class="tag proj">Mini Proje</span>Blog API'sine kullanıcı girişi eklemek (Herkes sadece kendi notunu silebilsin)</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 5. AŞAMA -->
+    <div class="stage">
+      <div class="stage-header">
+        <span class="stage-title">5. Aşama: İleri Seviye & Canlıya Alma (Deployment)</span>
+        <span class="badge">5. Hafta ve Sonrası</span>
+      </div>
+      <ul class="checklist">
+        <li>
+          <label>
+            <input type="checkbox" data-id="s5-1" />
+            <span><span class="tag py">Python</span>Asenkron Programlama (<code>async / await</code>) mantığı</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s5-2" />
+            <span><span class="tag be">Backend</span>Dış API'lere istek atmak (<code>httpx</code> / <code>requests</code>)</span>
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" data-id="s5-3" />
+            <span><span class="tag be">Backend</span>Docker temelleri ve projeyi internete açmak (Render / Railway)</span>
+          </label>
+        </li>
+      </ul>
+    </div>
+
+    <div class="rules-card">
+      <h3>💡 Altın Kurallar</h3>
+      <ul>
+        <li><strong>%70 Kod, %30 Teori:</strong> Uzun teorik videolar izlemek yerine doğrudan kod yazarak ilerliyoruz.</li>
+        <li><strong>İhtiyaç Anında Öğren (Just-in-Time):</strong> Bir Python konusunu ancak Backend'de o konuya ihtiyacımız olduğunda öğreniyoruz.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+
+    function updateProgress() {
+      const total = checkboxes.length;
+      let checked = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) checked++;
+        localStorage.setItem('roadmap_' + cb.dataset.id, cb.checked);
+      });
+      const percent = Math.round((checked / total) * 100);
+      progressFill.style.width = percent + '%';
+      progressText.textContent = `%${percent} Tamamlandı (${checked}/${total})`;
+    }
+
+    checkboxes.forEach(cb => {
+      const saved = localStorage.getItem('roadmap_' + cb.dataset.id);
+      if (saved === 'true') cb.checked = true;
+      cb.addEventListener('change', updateProgress);
+    });
+
+    updateProgress();
+  </script>
+</body>
+</html>
+

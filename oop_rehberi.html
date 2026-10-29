@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Geliştiriciler İçin Sıfırdan OOP Rehberi</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-hover: #263449;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-purple: #818cf8;
+      --accent-green: #22c55e;
+      --accent-yellow: #facc15;
+      --accent-red: #f87171;
+      --border: #334155;
+      --code-bg: #0b1120;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 2.5rem 1rem 5rem;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      margin-bottom: 0.8rem;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    /* İçindekiler */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .toc h3 {
+      color: var(--accent);
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toc ul {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0.6rem;
+    }
+
+    .toc a {
+      color: var(--text);
+      text-decoration: none;
+      display: inline-block;
+      transition: color 0.2s ease, transform 0.2s ease;
+      font-size: 0.95rem;
+    }
+
+    .toc a:hover {
+      color: var(--accent);
+      transform: translateX(4px);
+    }
+
+    /* Bölümler */
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    h2 {
+      font-size: 1.45rem;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+      padding-bottom: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      color: var(--accent-purple);
+      margin: 1.5rem 0 0.8rem;
+    }
+
+    p {
+      margin-bottom: 1rem;
+      color: #e2e8f0;
+    }
+
+    /* Callout Kartları */
+    .alert {
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      border-left: 4px solid;
+      background: rgba(15, 23, 42, 0.6);
+    }
+
+    .alert-tip {
+      border-left-color: var(--accent-green);
+      background: rgba(34, 197, 94, 0.08);
+    }
+
+    .alert-tip strong {
+      color: var(--accent-green);
+    }
+
+    .alert-warn {
+      border-left-color: var(--accent-yellow);
+      background: rgba(250, 204, 21, 0.08);
+    }
+
+    .alert-warn strong {
+      color: var(--accent-yellow);
+    }
+
+    .alert-danger {
+      border-left-color: var(--accent-red);
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    .alert-danger strong {
+      color: var(--accent-red);
+    }
+
+    /* Kod Blokları */
+    pre {
+      background-color: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 1.25rem 0;
+      color: #f1f5f9;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--accent);
+      padding: 0.15rem 0.4rem;
+      border-radius: 5px;
+      font-size: 0.88em;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: inherit;
+    }
+
+    /* Şemalar / Görsel Kutular */
+    .visual-box {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+      text-align: center;
+    }
+
+    .diagram-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .diagram-pill {
+      background: #1e293b;
+      border: 1px solid var(--accent-purple);
+      color: var(--text);
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .diagram-arrow {
+      color: var(--muted);
+      font-size: 1.3rem;
+    }
+
+    /* Tablo */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #0f172a;
+      color: var(--accent);
+      padding: 0.85rem 1rem;
+      border-bottom: 2px solid var(--border);
+      font-weight: 700;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: #cbd5e1;
+    }
+
+    tr:hover td {
+      background-color: rgba(56, 189, 248, 0.04);
+    }
+
+    /* Liste */
+    ul, ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧩 Sıfırdan OOP (Nesne Yönelimli Programlama) Rehberi</h1>
+      <p>Python ve FastAPI ile backend geliştirirken sınıflar, nesneler, kalıtım ve mimariyi anlamanın en pratik yolu.</p>
+    </header>
+
+    <!-- İçindekiler -->
+    <div class="toc">
+      <h3>📑 Hızlı Gezinti</h3>
+      <ul>
+        <li><a href="#bolum1">1. Düz Sözlükler Neden Yetmedi?</a></li>
+        <li><a href="#bolum2">2. Sınıf (Class) ve Nesne (Object)</a></li>
+        <li><a href="#bolum3">3. "self" Kelimesi Ne Demektir?</a></li>
+        <li><a href="#bolum4">4. __init__ (Kurucu Metot)</a></li>
+        <li><a href="#bolum5">5. Metotlar ve Kapsülleme</a></li>
+        <li><a href="#bolum6">6. Kalıtım (Inheritance / Miras)</a></li>
+        <li><a href="#bolum7">7. Backend Mimarisinde OOP</a></li>
+        <li><a href="#bolum8">8. Özet Karşılaştırma Tablosu</a></li>
+      </ul>
+    </div>
+
+    <!-- 1. BÖLÜM -->
+    <section id="bolum1">
+      <h2>1. Neden OOP? Düz Fonksiyonlar ve Sözlükler Neden Yetmedi?</h2>
+      <p>Eğitimin ilk günlerinde ürünlerimizi sıradan Python sözlükleri (<code>dict</code>) olarak tutmuştuk:</p>
+
+      <pre><code># Eski Yöntem (Düz Sözlük):
+urun_1 = {"id": 1, "isim": "Kulaklık", "fiyat": 1500}
+urun_2 = {"id": 2, "name": "Klavye", "ucret": 2200}  # DİKKAT: Anahtar isimleri karıştı!</code></pre>
+
+      <div class="alert alert-danger">
+        <strong>⚠️ Buradaki 3 Büyük Problem:</strong>
+        <ol style="margin-top: 0.5rem; margin-bottom: 0;">
+          <li><strong>İsim Garantisi Yok:</strong> Bir yerde <code>"fiyat"</code>, başka bir dosyada <code>"ucret"</code> yazabilirsiniz. Python bunu derleme anında fark edemez ve sistem patlar.</li>
+          <li><strong>Veri Tipi Kontrolü Yok:</strong> Biri <code>fiyat: "bin lira"</code> yazarsa sözlük bunu sessizce kabul eder.</li>
+          <li><strong>Veri ile Davranış Birbirinden Kopuk:</strong> Fiyata KDV eklemek isterseniz, dosyanın başka bir köşesine <code>def kdv_ekle(fiyat)</code> fonksiyonu yazmanız gerekir. Veri bir yerde, onu işleyen kod başka yerdedir.</li>
+        </ol>
+      </div>
+
+      <div class="alert alert-tip">
+        <strong>💡 Çözüm:</strong> Veriyi (özellikleri) ve o veriyi işleyen fonksiyonları (davranışları) tek bir şablon çatısı altında toplamak. İşte buna <strong>OOP (Nesne Yönelimli Programlama)</strong> diyoruz!
+      </div>
+    </section>
+
+    <!-- 2. BÖLÜM -->
+    <section id="bolum2">
+      <h2>2. Sınıf (Class) ve Nesne (Object) Nedir?</h2>
+      <p>Bu iki kavramı anlamanın en meşhur yolu <strong>Kek Kalıbı ve Pişen Kek</strong> benzetmesidir:</p>
+
+      <ul>
+        <li><strong>Sınıf (Class):</strong> Kek kalıbıdır, mimari plandır, fabrikadaki kalıptır. Tek başına hafızada yer tutmaz; sadece ürünün <strong>nasıl üretileceğinin kuralını</strong> belirler.</li>
+        <li><strong>Nesne (Object / Instance):</strong> O kalıptan fırından çıkan gerçek kektir, fabrikadan çıkan gerçek arabadır.</li>
+      </ul>
+
+      <div class="visual-box">
+        <div style="font-weight: 600; color: var(--accent); margin-bottom: 0.5rem;">Kalıptan Nesne Üretim Şeması</div>
+        <div class="diagram-row">
+          <div class="diagram-pill" style="border-color: var(--accent);">class Urun (Kalıp)</div>
+          <div class="diagram-arrow">➔</div>
+          <div class="diagram-pill">Nesne 1: Kulaklık (1500 TL)</div>
+          <div class="diagram-pill">Nesne 2: Klavye (2200 TL)</div>
+          <div class="diagram-pill">Nesne 3: Mouse (800 TL)</div>
+        </div>
+      </div>
+
+      <pre><code># 1. KALIP (Class) Tanımlıyoruz:
+class Urun:
+    isim: str
+    fiyat: int
+
+# 2. KALIPTAN NESNE (Object) Üretiyoruz:
+u1 = Urun()
+u1.isim = "Kulaklık"
+u1.fiyat = 1500
+
+u2 = Urun()
+u2.isim = "Klavye"
+u2.fiyat = 2200</code></pre>
+      <p>Artık <code>u1</code> ve <code>u2</code>, <code>Urun</code> sınıfından üretilmiş iki bağımsız nesnedir. Biri değiştiğinde diğeri asla etkilenmez.</p>
+    </section>
+
+    <!-- 3. BÖLÜM -->
+    <section id="bolum3">
+      <h2>3. "self" Ne Demektir? Neden Her Yere Yazıyoruz?</h2>
+      <p>Python'da sınıflara ilk adım atıldığında en kafa karıştırıcı kelime <code>self</code> kelimesidir.</p>
+
+      <div class="alert alert-tip">
+        <strong>🧠 Günlük Hayat Karşılığı:</strong> Türkçedeki <strong>"Kendi"</strong> veya <strong>"Benim"</strong> zamiridir.
+      </div>
+
+      <p>Bir sınıfa metot (fonksiyon) yazdığınızda, o metodun hangi nesne için çalıştığını bilmesi gerekir:</p>
+      <ul>
+        <li>"Kulaklık'ın fiyatı" mı, yoksa "Klavye'nin fiyatı" mı?</li>
+      </ul>
+      <p>İşte <code>self</code>, o an <strong>hangi nesne üzerinde işlem yapılıyorsa onu temsil eder.</strong></p>
+
+      <pre><code>class Urun:
+    def __init__(self, isim: str, fiyat: int):
+        self.isim = isim    # "Bu nesnenin kendi ismi, dışarıdan gelen isim olsun"
+        self.fiyat = fiyat  # "Bu nesnenin kendi fiyatı, dışarıdan gelen fiyat olsun"
+
+    def bilgileri_yazdir(self):
+        # self.isim diyerek "hangi ürün çağrıldıysa onun ismini yaz" diyoruz
+        print(f"Ürün: {self.isim}, Fiyat: {self.fiyat} TL")
+
+# Kullanım:
+kulaklik = Urun("Kablosuz Kulaklık", 1500)
+klavye = Urun("Mekanik Klavye", 2200)
+
+kulaklik.bilgileri_yazdir()  # self = kulaklik -> "Ürün: Kablosuz Kulaklık"
+klavye.bilgileri_yazdir()    # self = klavye   -> "Ürün: Mekanik Klavye"</code></pre>
+    </section>
+
+    <!-- 4. BÖLÜM -->
+    <section id="bolum4">
+      <h2>4. __init__ (Kurucu Metot) Nedir?</h2>
+      <p><code>__init__</code>, İngilizce <em>"initialize" (başlatmak / ilk ayarlarını yapmak)</em> kelimesinden gelir.</p>
+      <p>Bir nesne <strong>dünyaya geldiği (oluşturulduğu) ilk saniyede</strong> otomatik olarak çalışan özel bir fonksiyondur.</p>
+
+      <pre><code>class Urun:
+    # Nesne üretildiği saniye bu fonksiyon kendiliğinden çalışır:
+    def __init__(self, isim: str, fiyat: int):
+        self.isim = isim
+        self.fiyat = fiyat
+        self.stokta_var_mi = True  # Her yeni ürün otomatik stokta başlar
+
+# Kullanımı:
+yeni_urun = Urun("Oyuncu Mouse", 800)</code></pre>
+    </section>
+
+    <!-- 5. BÖLÜM -->
+    <section id="bolum5">
+      <h2>5. Metotlar ve Kapsülleme (Encapsulation)</h2>
+      <p>OOP'nin en büyük gücü: <strong>Veri ve o veriyi işleyen fonksiyonları aynı kutuya koymaktır.</strong></p>
+
+      <h3>❌ Eski / Kötü Yol (Fonksiyonel Dağınıklık):</h3>
+      <pre><code>urun = {"isim": "Laptop", "fiyat": 20000}
+
+# Dosyanın bambaşka bir yerinde:
+def kdv_hesapla(fiyat):
+    return fiyat * 1.20
+
+def indirim_yap(fiyat, oran):
+    return fiyat - (fiyat * oran / 100)</code></pre>
+
+      <h3>✅ Modern OOP Yolu (Kapsülleme):</h3>
+      <p>Hesaplamaları doğrudan <code>Urun</code> sınıfının içine birer <strong>metot</strong> olarak ekleriz:</p>
+
+      <pre><code>class Urun:
+    def __init__(self, isim: str, fiyat: int):
+        self.isim = isim
+        self.fiyat = fiyat
+
+    # Ürünün kendi KDV'sini hesaplayan metodu:
+    def kdv_dahil_fiyat(self) -> float:
+        return self.fiyat * 1.20
+
+    # Ürüne indirim uygulayan metot:
+    def indirim_uygula(self, yuzde: int):
+        indirim_tutari = (self.fiyat * yuzde) / 100
+        self.fiyat -= int(indirim_tutari)
+
+# Kullanım:
+laptop = Urun("Laptop", 20000)
+print(laptop.kdv_dahil_fiyat())  # 24000.0 döner
+
+laptop.indirim_uygula(10)        # %10 indirim uygula
+print(laptop.fiyat)              # 18000 döner</code></pre>
+    </section>
+
+    <!-- 6. BÖLÜM -->
+    <section id="bolum6">
+      <h2>6. Kalıtım (Inheritance / Miras Alma) Nedir?</h2>
+      <p>Biyolojide anne ve babanızdan genetik özellikleri miras alırsınız; sıfırdan bir insan tasarlanmaz.</p>
+      <p>Yazılımda da bir sınıf, başka bir sınıfın <strong>tüm özelliklerini ve yeteneklerini miras alabilir</strong>.</p>
+
+      <div class="visual-box">
+        <div class="diagram-row">
+          <div class="diagram-pill" style="border-color: var(--accent-yellow);">
+            <strong>SQLModel (Ata Sınıf)</strong><br />
+            <small style="color: var(--muted);">Veritabanı Motoru + JSON Çevirici + Doğrulama</small>
+          </div>
+          <div class="diagram-arrow">⬇️ Miras Alır (Inherits)</div>
+          <div class="diagram-pill" style="border-color: var(--accent-green);">
+            <strong>class Urun(SQLModel, table=True)</strong><br />
+            <small style="color: var(--muted);">Bizim Ürün Tablomuz</small>
+          </div>
+        </div>
+      </div>
+
+      <pre><code>from sqlmodel import SQLModel, Field
+
+# Urun sınıfı, SQLModel sınıfından miras alıyor:
+class Urun(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    isim: str
+    fiyat: int
+    stokta_var_mi: bool = True</code></pre>
+
+      <div class="alert alert-tip">
+        <strong>Neden Miras Aldık?</strong><br />
+        Eğer <code>(SQLModel)</code> yazmasaydık SQLite tablosu oluşturmak, JSON dönüşümleri yapmak ve veri doğrulamak için yüzlerce satır kod yazmamız gerekirdi. Miras aldığımız için tüm bu yetenekler <strong>tek kelimeyle</strong> sınıfımıza geçti!
+      </div>
+    </section>
+
+    <!-- 7. BÖLÜM -->
+    <section id="bolum7">
+      <h2>7. FastAPI ve Backend Mimarisinde OOP</h2>
+      <p>Backend projelerinde OOP şu 3 temel katmanda kullanılır:</p>
+
+      <h3>1. Model ve DTO Kalıtım Hiyerarşisi</h3>
+      <p>Kullanıcı yeni ürün eklerken ID yollamaz, ancak veritabanında ID olmalıdır. Bunu kalıtımla çok temiz çözeriz:</p>
+
+      <pre><code># 1. Ortak Ata Sınıf (Base)
+class UrunBase(SQLModel):
+    isim: str
+    fiyat: int
+    stokta_var_mi: bool = True
+
+# 2. Kullanıcıdan veri alırken (ID yok):
+class UrunCreate(UrunBase):
+    pass
+
+# 3. Veritabanı Tablosu (ID var):
+class Urun(UrunBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)</code></pre>
+
+      <h3>2. Servis Katmanı (Service Pattern)</h3>
+      <p>Endpoint fonksiyonlarının içine veritabanı sorgularını yığmak yerine, tüm işlemleri bir <strong>Servis Sınıfına</strong> devrederiz:</p>
+
+      <pre><code>class UrunServisi:
+    def __init__(self, session: Session):
+        self.session = session  # Veritabanı oturumunu saklar
+
+    def tumunu_getir(self):
+        return self.session.exec(select(Urun)).all()
+
+    def id_ile_getir(self, urun_id: int):
+        return self.session.get(Urun, urun_id)</code></pre>
+    </section>
+
+    <!-- 8. BÖLÜM -->
+    <section id="bolum8">
+      <h2>8. Özet Karşılaştırma Tablosu</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Kavram</th>
+              <th>Günlük Hayat</th>
+              <th>main.py'deki Karşılığı</th>
+              <th>Ne Fayda Sağlar?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Sınıf (Class)</strong></td>
+              <td>Kek Kalıbı / Mimari Plan</td>
+              <td><code>class Urun(SQLModel):</code></td>
+              <td>Standart şablon ve veri kuralları belirler.</td>
+            </tr>
+            <tr>
+              <td><strong>Nesne (Object)</strong></td>
+              <td>Fırından çıkan gerçek Kek</td>
+              <td><code>urun = Urun(isim="Mouse"...)</code></td>
+              <td>Hafızada ve veritabanında yaşayan veridir.</td>
+            </tr>
+            <tr>
+              <td><strong>self</strong></td>
+              <td>"Kendi", "Benim" zamiri</td>
+              <td><code>self.fiyat, self.isim</code></td>
+              <td>Fonksiyonun hangi nesne için çalıştığını bilir.</td>
+            </tr>
+            <tr>
+              <td><strong>__init__</strong></td>
+              <td>Doğum Anı / Montaj Hattı</td>
+              <td><code>def __init__(self, ...)</code></td>
+              <td>Nesne doğarken ilk değerlerini otomatik atar.</td>
+            </tr>
+            <tr>
+              <td><strong>Metot (Method)</strong></td>
+              <td>Nesnenin Yeteneği</td>
+              <td><code>urun.kdv_hesapla()</code></td>
+              <td>Veriyi işleyen kodları nesnenin içine gömer.</td>
+            </tr>
+            <tr>
+              <td><strong>Kalıtım (Inheritance)</strong></td>
+              <td>Anne/Babadan Gen Alma</td>
+              <td><code>class Urun(SQLModel):</code></td>
+              <td>Başka sınıfın onlarca özelliğini devralır.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <p>Python + FastAPI Yol Haritası &bull; OOP Öğrenim Modülü &bull; 2026</p>
+    </footer>
+  </div>
+</body>
+</html>
