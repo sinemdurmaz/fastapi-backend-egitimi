@@ -23,6 +23,10 @@ class UrunCreate(UrunBase):
 class Urun(UrunBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
+class UrunUpdate(SQLModel):
+    isim: str| None = None
+    fiyat: int| None = None
+    stokta_var_mi: bool| None = None
 
 # Veritabanı Bağlantısı ve Motoru
 sqlite_dosyasi = "veritabani.db"
@@ -92,3 +96,23 @@ def urun_sil(urun_id: int):
         session.delete(urun)
         session.commit()
         return {"mesaj": f"{urun_id} ID'li ürün veritabanından silindi!"}
+
+
+# ÜRÜN GÜNCELLEME (PATCH - Kısmi Güncelleme)                                                    
+@app.patch("/urunler/{urun_id}", response_model=Urun)
+def urun_guncelle(urun_id: int, urun_verisi: UrunUpdate):
+    with Session(engine) as session:
+        db_urun = session.get(Urun, urun_id)
+        if not db_urun:
+            raise HTTPException(status_code=404, detail="Güncellenecek ürün bulunamadı!")
+
+        # Sadece kullanıcının gerçekten gönderdiği alanları alıyoruz  
+        guncellenecekler = urun_verisi.model_dump(exclude_unset=True)
+        db_urun.sqlmodel_update(guncellenecekler)
+
+        session.add(db_urun)
+        session.commit()
+        session.refresh(db_urun)
+        return db_urun
+
+    
