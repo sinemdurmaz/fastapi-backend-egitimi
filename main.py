@@ -1,53 +1,24 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Session, select
 
-
-# 1. ORTAK ATA MODEL (Base Class)
-class UrunBase(SQLModel):
-    isim: str
-    fiyat: int
-    stokta_var_mi: bool = True
-
-    # OOP Metodu: Nesnenin kendi verisiyle (self.fiyat) KDV hesaplaması
-    def kdv_dahil_fiyat(self) -> float:
-        return round(self.fiyat * 1.20, 2)
-
-
-# 2. KULLANICIDAN VERİ ALIRKEN (ID Yok - Miras Alır)
-class UrunCreate(UrunBase):
-    pass
-
-
-# 3. VERİTABANI TABLOSU (ID Var - Miras Alır)
-class Urun(UrunBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-
-class UrunUpdate(SQLModel):
-    isim: str| None = None
-    fiyat: int| None = None
-    stokta_var_mi: bool| None = None
-
-# Veritabanı Bağlantısı ve Motoru
-sqlite_dosyasi = "veritabani.db"
-sqlite_url = f"sqlite:///{sqlite_dosyasi}"
-engine = create_engine(sqlite_url, echo=True)
+from database import engine, veritabanini_olustur
+from models import Urun, UrunCreate, UrunUpdate
 
 
 @asynccontextmanager
 async def omur_dongusu(app: FastAPI):
-    SQLModel.metadata.create_all(engine)
+    veritabanini_olustur()
     yield
 
 
-app = FastAPI(title="OOP Destekli Veritabanlı Ürün API'si", lifespan=omur_dongusu)
+app = FastAPI(title="OOP Destekli Modüler Ürün API'si", lifespan=omur_dongusu)
 
 
-# YENİ ÜRÜN EKLEME (POST - UrunCreate sayesinde kullanıcıdan ID istemez!)
+# YENİ ÜRÜN EKLEME (POST)
 @app.post("/urunler", response_model=Urun)
 def urun_ekle(urun_verisi: UrunCreate):
     with Session(engine) as session:
-        # Gelen veriyi veritabanı modeline dönüştürüyoruz
         db_urun = Urun.model_validate(urun_verisi)
         session.add(db_urun)
         session.commit()
@@ -72,7 +43,7 @@ def id_ile_urun_bul(urun_id: int):
         return urun
 
 
-# OOP METODU TESTİ: KDV Hesaplama (Nesne kendi metodunu çağırır)
+# OOP METODU TESTİ: KDV Hesaplama
 @app.get("/urunler/{urun_id}/kdv")
 def urun_kdv_hesapla(urun_id: int):
     with Session(engine) as session:
@@ -86,6 +57,23 @@ def urun_kdv_hesapla(urun_id: int):
         }
 
 
+# ÜRÜN GÜNCELLEME (PATCH)
+@app.patch("/urunler/{urun_id}", response_model=Urun)
+def urun_guncelle(urun_id: int, urun_verisi: UrunUpdate):
+    with Session(engine) as session:
+        db_urun = session.get(Urun, urun_id)
+        if not db_urun:
+            raise HTTPException(status_code=404, detail="Güncellenecek ürün bulunamadı!")
+
+        guncellenecekler = urun_verisi.model_dump(exclude_unset=True)
+        db_urun.sqlmodel_update(guncellenecekler)
+
+        session.add(db_urun)
+        session.commit()
+        session.refresh(db_urun)
+        return db_urun
+
+
 # ÜRÜN SİLME (DELETE)
 @app.delete("/urunler/{urun_id}")
 def urun_sil(urun_id: int):
@@ -96,23 +84,3 @@ def urun_sil(urun_id: int):
         session.delete(urun)
         session.commit()
         return {"mesaj": f"{urun_id} ID'li ürün veritabanından silindi!"}
-
-
-# ÜRÜN GÜNCELLEME (PATCH - Kısmi Güncelleme)                                                    
-@app.patch("/urunler/{urun_id}", response_model=Urun)
-def urun_guncelle(urun_id: int, urun_verisi: UrunUpdate):
-    with Session(engine) as session:
-        db_urun = session.get(Urun, urun_id)
-        if not db_urun:
-            raise HTTPException(status_code=404, detail="Güncellenecek ürün bulunamadı!")
-
-        # Sadece kullanıcının gerçekten gönderdiği alanları alıyoruz  
-        guncellenecekler = urun_verisi.model_dump(exclude_unset=True)
-        db_urun.sqlmodel_update(guncellenecekler)
-
-        session.add(db_urun)
-        session.commit()
-        session.refresh(db_urun)
-        return db_urun
-
-    
