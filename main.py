@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session, select
 
 from database import engine, veritabanini_olustur
@@ -14,7 +14,13 @@ from models import (
     UrunCreate,
     UrunUpdate,
 )
-from security import sifre_dogrula, sifre_hashle, token_olustur
+from security import (
+    oauth2_scheme,
+    sifre_dogrula,
+    sifre_hashle,
+    token_coz,
+    token_olustur,
+)
 
 
 @asynccontextmanager
@@ -26,6 +32,31 @@ async def omur_dongusu(app: FastAPI):
 app = FastAPI(title="OOP, Auth & Güvenlik Destekli API", lifespan=omur_dongusu)
 
 
+# =======================================================
+# GÜVENLİK BEKÇİSİ (DEPENDENCY INJECTION - DEPENDS)
+# =======================================================
+def giris_yapmis_kullaniciyi_al(token: str = Depends(oauth2_scheme)) -> Kullanici:
+    payload = token_coz(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=401,
+            detail="Geçersiz veya süresi dolmuş oturum bileti (Token)!",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    with Session(engine) as session:
+        kullanici = session.exec(
+            select(Kullanici).where(Kullanici.email == payload["sub"])
+        ).first()
+        if not kullanici:
+            raise HTTPException(
+                status_code=401,
+                detail="Kullanıcı bulunamadı!",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return kullanici
+
+
 # ==========================================
 # KİMLİK DOĞRULAMA (AUTH) UÇ NOKTALARI
 # ==========================================
@@ -35,17 +66,13 @@ app = FastAPI(title="OOP, Auth & Güvenlik Destekli API", lifespan=omur_dongusu)
 @app.post("/auth/kayit", response_model=KullaniciPublic)
 def kullanici_kayit(kullanici_verisi: KullaniciCreate):
     with Session(engine) as session:
-        # Aynı e-posta daha önce alınmış mı?
         mevcut_kullanici = session.exec(
             select(Kullanici).where(Kullanici.email == kullanici_verisi.email)
         ).first()
         if mevcut_kullanici:
             raise HTTPException(status_code=400, detail="Bu e-posta adresi zaten kullanımda!")
 
-        # Şifreyi kırılmaz bir Argon2 hash'ine dönüştürüyoruz
         guvenli_sifre = sifre_hashle(kullanici_verisi.sifre)
-
-        # Veritabanına şifrenin kendisini DEĞİL, sadece hash'ini yazıyoruz:
         yeni_kullanici = Kullanici(
             email=kullanici_verisi.email,
             hashed_sifre=guvenli_sifre,
@@ -53,8 +80,6 @@ def kullanici_kayit(kullanici_verisi: KullaniciCreate):
         session.add(yeni_kullanici)
         session.commit()
         session.refresh(yeni_kullanici)
-
-        # KullaniciPublic sayesinde dışarıya asla şifre veya hash sızmaz!
         return yeni_kullanici
 
 
@@ -66,17 +91,21 @@ def kullanici_giris(giris_verisi: KullaniciCreate):
             select(Kullanici).where(Kullanici.email == giris_verisi.email)
         ).first()
 
-        # E-posta kayıtlı değilse ya da şifre yanlışsa 401 Unauthorized döner
         if not kullanici or not sifre_dogrula(giris_verisi.sifre, kullanici.hashed_sifre):
             raise HTTPException(
                 status_code=401,
                 detail="E-posta veya şifre hatalı!"
             )
 
-        # Bilgiler doğru! Kullanıcıya dijital mühürlü bir JWT bileti veriyoruz:
         bilet = token_olustur(veri={"sub": kullanici.email, "id": kullanici.id})
         return {"access_token": bilet, "token_type": "bearer"}
 
+
+# 3. KULLANICI PROFİLİ (KORUMALI ALAN TESTİ)
+@app.get("/auth/profil", response_model=KullaniciPublic)
+def kullanici_profil(kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al)):
+    # Buraya sadece geçerli token sahipleri girebilir
+    return kullanici
 
 
 # ==========================================
@@ -84,9 +113,12 @@ def kullanici_giris(giris_verisi: KullaniciCreate):
 # ==========================================
 
 
-# 2. YENİ KATEGORİ EKLEME (POST)
+# 4. YENİ KATEGORİ EKLEME (KORUMALI - Sadece giriş yapanlar ekleyebilir)
 @app.post("/kategoriler", response_model=Kategori)
-def kategori_ekle(kategori_verisi: KategoriCreate):
+def kategori_ekle(
+    kategori_verisi: KategoriCreate,
+    kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al),
+):
     with Session(engine) as session:
         db_kategori = Kategori.model_validate(kategori_verisi)
         session.add(db_kategori)
@@ -95,14 +127,14 @@ def kategori_ekle(kategori_verisi: KategoriCreate):
         return db_kategori
 
 
-# 3. TÜM KATEGORİLERİ LİSTELEME (GET)
+# 5. TÜM KATEGORİLERİ LİSTELEME (AÇIK - Herkes görebilir)
 @app.get("/kategoriler", response_model=list[Kategori])
 def tum_kategorileri_getir():
     with Session(engine) as session:
         return session.exec(select(Kategori)).all()
 
 
-# 4. OOP İLİŞKİ TESTİ: Bir kategorinin altındaki tüm ürünleri getirme!
+# 6. OOP İLİŞKİ TESTİ: Bir kategorinin altındaki tüm ürünleri getirme (AÇIK)
 @app.get("/kategoriler/{kategori_id}/urunler", response_model=list[Urun])
 def kategorinin_urunlerini_getir(kategori_id: int):
     with Session(engine) as session:
@@ -117,9 +149,12 @@ def kategorinin_urunlerini_getir(kategori_id: int):
 # ==========================================
 
 
-# 5. YENİ ÜRÜN EKLEME (POST)
+# 7. YENİ ÜRÜN EKLEME (KORUMALI - Sadece giriş yapanlar ekleyebilir)
 @app.post("/urunler", response_model=Urun)
-def urun_ekle(urun_verisi: UrunCreate):
+def urun_ekle(
+    urun_verisi: UrunCreate,
+    kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al),
+):
     with Session(engine) as session:
         if urun_verisi.kategori_id is not None:
             kategori = session.get(Kategori, urun_verisi.kategori_id)
@@ -133,14 +168,14 @@ def urun_ekle(urun_verisi: UrunCreate):
         return db_urun
 
 
-# 6. TÜM ÜRÜNLERİ LİSTELEME (GET)
+# 8. TÜM ÜRÜNLERİ LİSTELEME (AÇIK - Herkes görebilir)
 @app.get("/urunler", response_model=list[Urun])
 def tum_urunleri_getir():
     with Session(engine) as session:
         return session.exec(select(Urun)).all()
 
 
-# 7. ID İLE ÜRÜN BULMA (GET)
+# 9. ID İLE ÜRÜN BULMA (AÇIK - Herkes görebilir)
 @app.get("/urunler/{urun_id}", response_model=Urun)
 def id_ile_urun_bul(urun_id: int):
     with Session(engine) as session:
@@ -150,7 +185,7 @@ def id_ile_urun_bul(urun_id: int):
         return urun
 
 
-# 8. OOP METODU TESTİ: KDV Hesaplama
+# 10. OOP METODU TESTİ: KDV Hesaplama (AÇIK)
 @app.get("/urunler/{urun_id}/kdv")
 def urun_kdv_hesapla(urun_id: int):
     with Session(engine) as session:
@@ -164,9 +199,13 @@ def urun_kdv_hesapla(urun_id: int):
         }
 
 
-# 9. ÜRÜN GÜNCELLEME (PATCH)
+# 11. ÜRÜN GÜNCELLEME (KORUMALI - Sadece giriş yapanlar güncelleyebilir)
 @app.patch("/urunler/{urun_id}", response_model=Urun)
-def urun_guncelle(urun_id: int, urun_verisi: UrunUpdate):
+def urun_guncelle(
+    urun_id: int,
+    urun_verisi: UrunUpdate,
+    kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al),
+):
     with Session(engine) as session:
         db_urun = session.get(Urun, urun_id)
         if not db_urun:
@@ -181,9 +220,12 @@ def urun_guncelle(urun_id: int, urun_verisi: UrunUpdate):
         return db_urun
 
 
-# 10. ÜRÜN SİLME (DELETE)
+# 12. ÜRÜN SİLME (KORUMALI - Sadece giriş yapanlar silebilir)
 @app.delete("/urunler/{urun_id}")
-def urun_sil(urun_id: int):
+def urun_sil(
+    urun_id: int,
+    kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al),
+):
     with Session(engine) as session:
         urun = session.get(Urun, urun_id)
         if not urun:
