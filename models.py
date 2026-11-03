@@ -1,29 +1,52 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
-# 1. ORTAK ATA MODEL (Base Class)
+# ==========================================
+# 1. KATEGORİ MODELLERİ
+# ==========================================
+class KategoriBase(SQLModel):
+    ad: str
+
+
+class KategoriCreate(KategoriBase):
+    pass
+
+
+class Kategori(KategoriBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    # OOP İlişkisi: Bu kategoriye ait ürünlerin listesi
+    urunler: list["Urun"] = Relationship(back_populates="kategori")
+
+
+# ==========================================
+# 2. ÜRÜN MODELLERİ
+# ==========================================
 class UrunBase(SQLModel):
     isim: str
     fiyat: int
     stokta_var_mi: bool = True
+    # Hangi kategoriye ait olduğunu tutan yabancı anahtar (Foreign Key):
+    kategori_id: int | None = Field(default=None, foreign_key="kategori.id")
 
     # OOP Metodu: Nesnenin kendi verisiyle (self.fiyat) KDV hesaplaması
     def kdv_dahil_fiyat(self) -> float:
         return round(self.fiyat * 1.20, 2)
 
 
-# 2. KULLANICIDAN VERİ ALIRKEN (ID Yok - Miras Alır)
 class UrunCreate(UrunBase):
     pass
 
 
-# 3. VERİTABANI TABLOSU (ID Var - Miras Alır)
 class Urun(UrunBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
+    # OOP İlişkisi: Bu ürünün ait olduğu kategori nesnesi
+    kategori: Kategori | None = Relationship(back_populates="urunler")
 
-# 4. GÜNCELLEME İÇİN VERİ KALIBI (Tüm alanlar opsiyonel)
+
 class UrunUpdate(SQLModel):
     isim: str | None = None
     fiyat: int | None = None
     stokta_var_mi: bool | None = None
+    kategori_id: int | None = None
