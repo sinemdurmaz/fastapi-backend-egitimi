@@ -50,3 +50,24 @@ class UrunUpdate(SQLModel):
     fiyat: int | None = None
     stokta_var_mi: bool | None = None
     kategori_id: int | None = None
+
+
+# ==========================================
+# 3. KULLANICI MODELLERİ (AUTH)
+# ==========================================
+class KullaniciBase(SQLModel):
+    # unique=True: Aynı e-posta ile iki kez kayıt olunamaz!
+    email: str = Field(unique=True, index=True)
+
+
+class KullaniciCreate(KullaniciBase):
+    sifre: str
+
+
+class Kullanici(KullaniciBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    hashed_sifre: str
+
+
+class KullaniciPublic(KullaniciBase):
+    id: int
