@@ -9,11 +9,12 @@ from models import (
     Kullanici,
     KullaniciCreate,
     KullaniciPublic,
+    Token,
     Urun,
     UrunCreate,
     UrunUpdate,
 )
-from security import sifre_hashle
+from security import sifre_dogrula, sifre_hashle, token_olustur
 
 
 @asynccontextmanager
@@ -55,6 +56,27 @@ def kullanici_kayit(kullanici_verisi: KullaniciCreate):
 
         # KullaniciPublic sayesinde dışarıya asla şifre veya hash sızmaz!
         return yeni_kullanici
+
+
+# 2. KULLANICI GİRİŞİ (LOGIN -> JWT BİLETİ DÖNER)
+@app.post("/auth/giris", response_model=Token)
+def kullanici_giris(giris_verisi: KullaniciCreate):
+    with Session(engine) as session:
+        kullanici = session.exec(
+            select(Kullanici).where(Kullanici.email == giris_verisi.email)
+        ).first()
+
+        # E-posta kayıtlı değilse ya da şifre yanlışsa 401 Unauthorized döner
+        if not kullanici or not sifre_dogrula(giris_verisi.sifre, kullanici.hashed_sifre):
+            raise HTTPException(
+                status_code=401,
+                detail="E-posta veya şifre hatalı!"
+            )
+
+        # Bilgiler doğru! Kullanıcıya dijital mühürlü bir JWT bileti veriyoruz:
+        bilet = token_olustur(veri={"sub": kullanici.email, "id": kullanici.id})
+        return {"access_token": bilet, "token_type": "bearer"}
+
 
 
 # ==========================================

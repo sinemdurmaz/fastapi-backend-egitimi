@@ -71,3 +71,10 @@ class Kullanici(KullaniciBase, table=True):
 
 class KullaniciPublic(KullaniciBase):
     id: int
+
+
+# 4. JWT TOKEN MODELİ
+class Token(SQLModel):
+    access_token: str
+    token_type: str = "bearer"
+
