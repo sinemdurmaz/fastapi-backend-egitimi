@@ -16,6 +16,12 @@ env/
 *.db
 *.sqlite3
 
+# Gizli Çevre Değişkenleri (Asla GitHub'a yüklenmez!)
+.env
+.env.local
+.env.*.local
+!.env.example
+
 # macOS
 .DS_Store
 .AppleDouble

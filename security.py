@@ -1,15 +1,20 @@
 from datetime import datetime, timedelta, timezone
+import os
+from dotenv import load_dotenv
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from pwdlib import PasswordHash
 
+# .env dosyasındaki gizli değişkenleri hafızaya yüklüyoruz
+load_dotenv()
+
 # Modern ve en güvenli endüstri standardı (Argon2)
 password_hash = PasswordHash.recommended()
 
-# JWT Ayarları
-SECRET_KEY = "super_gizli_ve_guvenli_backend_jwt_anahtari_2026_en_az_32_byte"
+# JWT Ayarları (.env dosyasından güvenle okunur)
+SECRET_KEY = os.getenv("SECRET_KEY", "varsayilan_yedek_anahtar_en_az_32_byte_uzunlugunda")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 # Swagger UI'da kilit simgesini açan ve Authorization Header'ını dinleyen şema
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/giris")
