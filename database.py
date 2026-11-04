@@ -7,4 +7,6 @@ engine = create_engine(sqlite_url, echo=True)
 
 
 def veritabanini_olustur():
+    # Tabloların SQLModel tarafından algılanması için modelleri yüklüyoruz
+    import models  # noqa: F401
     SQLModel.metadata.create_all(engine)

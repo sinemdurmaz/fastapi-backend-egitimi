@@ -101,11 +101,22 @@ def kullanici_giris(giris_verisi: KullaniciCreate):
         return {"access_token": bilet, "token_type": "bearer"}
 
 
-# 3. KULLANICI PROFİLİ (KORUMALI ALAN TESTİ)
+# 3. KULLANICI PROFİLİ
 @app.get("/auth/profil", response_model=KullaniciPublic)
 def kullanici_profil(kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al)):
-    # Buraya sadece geçerli token sahipleri girebilir
     return kullanici
+
+
+# 4. OOP İLİŞKİSİ: Giriş Yapan Kullanıcının Kendi Eklediği Ürünler
+@app.get("/auth/urunlerim", response_model=list[Urun])
+def kullanici_kendi_urunleri(kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al)):
+    with Session(engine) as session:
+        db_kullanici = session.get(Kullanici, kullanici.id)
+        if not db_kullanici:
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı!")
+        # OOP gücü: db_kullanici.urunler doğrudan o kullanıcının eklediği ürünleri döner
+        return db_kullanici.urunler
+
 
 
 # ==========================================
@@ -113,7 +124,7 @@ def kullanici_profil(kullanici: Kullanici = Depends(giris_yapmis_kullaniciyi_al)
 # ==========================================
 
 
-# 4. YENİ KATEGORİ EKLEME (KORUMALI - Sadece giriş yapanlar ekleyebilir)
+# 5. YENİ KATEGORİ EKLEME (KORUMALI)
 @app.post("/kategoriler", response_model=Kategori)
 def kategori_ekle(
     kategori_verisi: KategoriCreate,
@@ -127,14 +138,14 @@ def kategori_ekle(
         return db_kategori
 
 
-# 5. TÜM KATEGORİLERİ LİSTELEME (AÇIK - Herkes görebilir)
+# 6. TÜM KATEGORİLERİ LİSTELEME (AÇIK)
 @app.get("/kategoriler", response_model=list[Kategori])
 def tum_kategorileri_getir():
     with Session(engine) as session:
         return session.exec(select(Kategori)).all()
 
 
-# 6. OOP İLİŞKİ TESTİ: Bir kategorinin altındaki tüm ürünleri getirme (AÇIK)
+# 7. KATEGORİNİN ÜRÜNLERİNİ LİSTELEME (AÇIK)
 @app.get("/kategoriler/{kategori_id}/urunler", response_model=list[Urun])
 def kategorinin_urunlerini_getir(kategori_id: int):
     with Session(engine) as session:
@@ -149,7 +160,7 @@ def kategorinin_urunlerini_getir(kategori_id: int):
 # ==========================================
 
 
-# 7. YENİ ÜRÜN EKLEME (KORUMALI - Sadece giriş yapanlar ekleyebilir)
+# 8. YENİ ÜRÜN EKLEME (KORUMALI - Sahiplik Otomatik Atanır)
 @app.post("/urunler", response_model=Urun)
 def urun_ekle(
     urun_verisi: UrunCreate,
@@ -162,20 +173,22 @@ def urun_ekle(
                 raise HTTPException(status_code=400, detail="Belirtilen kategori_id bulunamadı!")
 
         db_urun = Urun.model_validate(urun_verisi)
+        # Sahiplik mühürleniyor: Bu ürünün sahibi giriş yapmış olan kullanıcıdır!
+        db_urun.sahip_id = kullanici.id
         session.add(db_urun)
         session.commit()
         session.refresh(db_urun)
         return db_urun
 
 
-# 8. TÜM ÜRÜNLERİ LİSTELEME (AÇIK - Herkes görebilir)
+# 9. TÜM ÜRÜNLERİ LİSTELEME (AÇIK)
 @app.get("/urunler", response_model=list[Urun])
 def tum_urunleri_getir():
     with Session(engine) as session:
         return session.exec(select(Urun)).all()
 
 
-# 9. ID İLE ÜRÜN BULMA (AÇIK - Herkes görebilir)
+# 10. ID İLE ÜRÜN BULMA (AÇIK)
 @app.get("/urunler/{urun_id}", response_model=Urun)
 def id_ile_urun_bul(urun_id: int):
     with Session(engine) as session:
@@ -185,7 +198,7 @@ def id_ile_urun_bul(urun_id: int):
         return urun
 
 
-# 10. OOP METODU TESTİ: KDV Hesaplama (AÇIK)
+# 11. OOP METODU TESTİ: KDV Hesaplama (AÇIK)
 @app.get("/urunler/{urun_id}/kdv")
 def urun_kdv_hesapla(urun_id: int):
     with Session(engine) as session:
@@ -199,7 +212,7 @@ def urun_kdv_hesapla(urun_id: int):
         }
 
 
-# 11. ÜRÜN GÜNCELLEME (KORUMALI - Sadece giriş yapanlar güncelleyebilir)
+# 12. ÜRÜN GÜNCELLEME (KORUMALI + SAHİPLİK KONTROLÜ)
 @app.patch("/urunler/{urun_id}", response_model=Urun)
 def urun_guncelle(
     urun_id: int,
@@ -211,6 +224,13 @@ def urun_guncelle(
         if not db_urun:
             raise HTTPException(status_code=404, detail="Güncellenecek ürün bulunamadı!")
 
+        # SAHİPLİK DENETİMİ:
+        if db_urun.sahip_id != kullanici.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Bu ürünü güncellemeye yetkiniz yok! Ürün size ait değil.",
+            )
+
         guncellenecekler = urun_verisi.model_dump(exclude_unset=True)
         db_urun.sqlmodel_update(guncellenecekler)
 
@@ -220,7 +240,7 @@ def urun_guncelle(
         return db_urun
 
 
-# 12. ÜRÜN SİLME (KORUMALI - Sadece giriş yapanlar silebilir)
+# 13. ÜRÜN SİLME (KORUMALI + SAHİPLİK KONTROLÜ)
 @app.delete("/urunler/{urun_id}")
 def urun_sil(
     urun_id: int,
@@ -230,6 +250,14 @@ def urun_sil(
         urun = session.get(Urun, urun_id)
         if not urun:
             raise HTTPException(status_code=404, detail="Silinecek ürün bulunamadı!")
+
+        # SAHİPLİK DENETİMİ:
+        if urun.sahip_id != kullanici.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Bu ürünü silmeye yetkiniz yok! Ürün size ait değil.",
+            )
+
         session.delete(urun)
         session.commit()
-        return {"mesaj": f"{urun_id} ID'li ürün veritabanından silindi!"}
+        return {"mesaj": f"{urun_id} ID'li ürün başarıyla silindi!"}
