@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv
+.venv*
+venv/
+ENV/
+env/
+.git
+.gitignore
+veritabani.db
+*.sqlite3
+.env
+.DS_Store

@@ -110,6 +110,33 @@ Sunucu başladıktan sonra tarayıcınızdan interaktif Swagger dokümantasyonun
 
 ---
 
+## 🐳 Docker ile Konteyner Olarak Çalıştırma
+
+Projeyi herhangi bir sunucuda veya Docker kurulu herhangi bir bilgisayarda tek komutla çalıştırmak için:
+
+```bash
+# 1. Konteyner imajını oluşturun:
+docker build -t fastapi-app .
+
+# 2. Konteyneri ayağa kaldırın:
+docker run -d -p 8000:8000 --name my-api fastapi-app
+```
+
+---
+
+## 🌐 Ücretsiz Canlıya Alma (Render / Railway Deployment)
+
+Bu projeyi internete canlı bir link olarak açmak için:
+1. Kodlarınızı GitHub reponuza pushlayın (`git push`).
+2. [Render.com](https://render.com) veya [Railway.app](https://railway.app) üzerinde ücretsiz bir hesap açın.
+3. **"New Web Service"** diyerek GitHub reponuzu seçin.
+4. Çevre Değişkeni (Environment Variable) olarak:
+   * `SECRET_KEY`: Güçlü bir gizli anahtar ekleyin.
+5. **Deploy** butonuna basın! Birkaç dakika içinde API'niz tüm dünyaya açık canlı bir link (**`https://projeniz.onrender.com/docs`**) haline gelecektir!
+
+
+---
+
 ## 📚 Ek Dokümantasyonlar
 
 * **[OOP_REHBERI.md](./OOP_REHBERI.md):** Backend geliştiriciler için sınıflar, `self`, `__init__`, kalıtım ve mimari rehberi.
