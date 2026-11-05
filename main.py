@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException
+import httpx
 from sqlmodel import Session, select
 
 from database import engine, veritabanini_olustur
@@ -261,3 +262,34 @@ def urun_sil(
         session.delete(urun)
         session.commit()
         return {"mesaj": f"{urun_id} ID'li ürün başarıyla silindi!"}
+
+
+# 14. ASENKRON & DIŞ REST API TESTİ: Canlı Dolar ($) Fiyatını Hesaplama (AÇIK)
+@app.get("/urunler/{urun_id}/dolar-fiyati")
+async def urun_dolar_fiyati(urun_id: int):
+    # 1. Önce ürünü veritabanımızdan buluyoruz:
+    with Session(engine) as session:
+        urun = session.get(Urun, urun_id)
+        if not urun:
+            raise HTTPException(status_code=404, detail="Ürün bulunamadı!")
+        urun_fiyat = urun.fiyat
+        urun_isim = urun.isim
+
+    # 2. Dışarıdaki Döviz REST API'sine ASENKRON olarak bağlanıyoruz (await):
+    async with httpx.AsyncClient() as client:
+        try:
+            yanit = await client.get("https://open.er-api.com/v6/latest/USD", timeout=5.0)
+            doviz_verisi = yanit.json()
+            dolar_kuru = doviz_verisi["rates"]["TRY"]
+        except Exception:
+            raise HTTPException(status_code=503, detail="Döviz servisine şu anda ulaşılamıyor!")
+
+    # 3. Canlı kur üzerinden hesabı yapıp dönüyoruz:
+    dolar_fiyati = round(urun_fiyat / dolar_kuru, 2)
+    return {
+        "urun": urun_isim,
+        "tl_fiyati": urun_fiyat,
+        "guncel_usd_try_kuru": round(dolar_kuru, 2),
+        "dolar_fiyati": f"${dolar_fiyati}",
+    }
+
